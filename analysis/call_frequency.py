@@ -1,18 +1,22 @@
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import sys
+from pathlib import Path
+
+# Add project root to sys.path to allow importing from dataset
+root_path = Path(__file__).resolve().parent.parent
+if str(root_path) not in sys.path:
+    sys.path.append(str(root_path))
+
+from dataset.utils import normalize_timestamp
 
 # Load dataset
 df = pd.read_csv('data/cleaned_bank_calls.csv')
 
-# Preprocess timestamps to handle non-standard formats
-# Remove 'kell' and standardize common separators
-df['timestamp'] = df['timestamp'].astype(str).str.replace(' kell ', ' ', regex=False)
-df['timestamp'] = df['timestamp'].str.replace('.', '-', regex=False)
-df['timestamp'] = df['timestamp'].str.replace('/', '-', regex=False)
-
-# Convert timestamp to datetime, coercing errors to NaT
-df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed', errors='coerce', utc=True)
+# Preprocess timestamps using normalized utility
+df['timestamp'] = df['timestamp'].apply(normalize_timestamp)
+df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
 
 # Drop rows where timestamp couldn't be parsed
 df = df.dropna(subset=['timestamp'])
@@ -39,5 +43,5 @@ pivot_fraud = fraud_counts.pivot(index='day_of_week', columns='hour', values='co
 plt.figure(figsize=(12, 6))
 sns.heatmap(pivot_fraud, annot=True, fmt='g', cmap='YlOrRd')
 plt.title('Fraud Call Volume by Day of Week and Hour')
-plt.savefig('data/fraud_call_frequency.png')
-print("Analysis saved to data/fraud_call_frequency.png")
+plt.savefig('docs/figures/fraud_call_frequency.png')
+print("Analysis saved to docs/figures/fraud_call_frequency.png")
