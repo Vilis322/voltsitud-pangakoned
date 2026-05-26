@@ -112,39 +112,33 @@ def remove_near_duplicates(
 ) -> tuple[pd.DataFrame, int, int]:
     """Detect and drop near-duplicates within each composite-key group.
 
-    A row is a near-duplicate of an earlier row in its group when their
-    `duration_sec` values differ by no more than `duration_tolerance_sec`.
-    The first row of each cluster is kept, all later matches are dropped.
+    Vectorized: sort the frame by the group key plus `duration_sec`, then
+    compute the per-group consecutive `duration_sec` difference. Any row
+    whose difference to its in-group predecessor is at most
+    `duration_tolerance_sec` is treated as a near-duplicate and dropped.
+    Rows with a NaN difference (either the first of a group or NaN
+    duration) are kept.
+
+    O(N log N) overall (dominated by the sort), versus the nested-loop
+    O(N^2 / |groups|) of the previous implementation.
 
     Returns (deduped_frame, rows_removed, distinct_groups_with_dupes).
     """
-    df = df.copy().reset_index(drop=True)
-    drop_idx: list[int] = []
-    groups_with_dupes = 0
+    sort_cols = GROUP_KEY + ["duration_sec"]
+    sorted_df = df.sort_values(sort_cols, kind="mergesort", na_position="last")
 
-    for _key, group in df.groupby(GROUP_KEY, dropna=False):
-        if len(group) < 2:
-            continue
-        ordered = group.sort_index()
-        kept_durations: list[float] = []
-        group_had_dupe = False
-        for idx, dur in ordered["duration_sec"].items():
-            if pd.isna(dur):
-                kept_durations.append(float("nan"))
-                continue
-            is_near = any(
-                pd.notna(k) and abs(dur - k) <= duration_tolerance_sec
-                for k in kept_durations
-            )
-            if is_near:
-                drop_idx.append(idx)
-                group_had_dupe = True
-            else:
-                kept_durations.append(float(dur))
-        if group_had_dupe:
-            groups_with_dupes += 1
+    diffs = sorted_df.groupby(GROUP_KEY, dropna=False)["duration_sec"].diff()
+    near_mask = diffs.notna() & (diffs.abs() <= duration_tolerance_sec)
 
-    return df.drop(index=drop_idx).reset_index(drop=True), len(drop_idx), groups_with_dupes
+    if near_mask.any():
+        groups_with_dupes = (
+            sorted_df.loc[near_mask, GROUP_KEY].drop_duplicates().shape[0]
+        )
+    else:
+        groups_with_dupes = 0
+
+    cleaned = sorted_df.loc[~near_mask].copy()
+    return cleaned.reset_index(drop=True), int(near_mask.sum()), int(groups_with_dupes)
 
 
 def dedup(df: pd.DataFrame) -> tuple[pd.DataFrame, DedupReport]:
