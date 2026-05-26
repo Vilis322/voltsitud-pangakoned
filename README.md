@@ -5,8 +5,8 @@ Fake bank calls fraud detection — defense project for Intro to Data Science (T
 ## Repo layout
 
 ```
-dataset/      # data pipeline: generation, cleaning, dedup, QA
-analysis/     # EDA scripts and per-question visualizations (Sprint 2)
+dataset/      # raw data ops: generation, dedup, QA, timestamp utils
+analysis/     # cleaning + EDA + per-question visualizations (Sprint 2)
 models/       # ML training / tuning / persistence (Sprint 3-5)
 dashboard/    # Streamlit dashboard (Sprint 6)
 docs/         # markdown documentation
@@ -22,7 +22,7 @@ pip install -r requirements.txt
 # Sprint 1 pipeline
 python -m dataset.generate                    # produces data/raw_bank_calls.csv
 python -m dataset.dedup                       # raw → data/dedup_bank_calls.csv + docs/dedup_report.md
-python dataset/cleaning.py                    # raw → data/cleaned_bank_calls.csv (categoricals normalized)
+python analysis/cleaning.py                   # raw → data/cleaned_bank_calls.csv (categoricals normalized)
 python dataset/qa.py                          # runs 6 hard checks + statistics on the raw file
 ```
 
