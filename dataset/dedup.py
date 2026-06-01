@@ -171,7 +171,7 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     cleaned.to_csv(args.output, index=False)
-    args.report.write_text(report.as_markdown())
+    args.report.write_text(report.as_markdown(), encoding="utf-8")
 
     print(f"input:  {args.input}  ({report.rows_before} rows)")
     print(f"output: {args.output} ({report.rows_after} rows)")
