@@ -1,6 +1,9 @@
 from pathlib import Path
 
+import pandas as pd
 from sklearn.ensemble import VotingClassifier
+
+from sklearn.base import clone
 
 from logreg import get_model as get_lr
 from random_forest import get_model as get_rf
@@ -11,14 +14,11 @@ from gb_model import apply_temporary_imputation
 
 
 ROOT = Path(__file__).resolve().parent.parent
-
 TRAIN_PATH = ROOT / "data" / "train_features.csv"
 TEST_PATH = ROOT / "data" / "test_features.csv"
 
 
 def load_data(path: Path):
-    import pandas as pd
-
     df = pd.read_csv(path)
 
     X = df.drop(columns=["is_fraud"])
@@ -33,27 +33,34 @@ def main():
     X_train, y_train = load_data(TRAIN_PATH)
     X_test, y_test = load_data(TEST_PATH)
 
-    X_train, X_test = apply_temporary_imputation(X_train, X_test)  
+    # imputation (shared preprocessing)
+    X_train, X_test = apply_temporary_imputation(X_train, X_test)
 
     print(f"Train shape: {X_train.shape}")
     print(f"Test shape:  {X_test.shape}")
 
-    # === BASE MODELS ===
+    # =========================
+    # BASE MODELS (fresh instances)
+    # =========================
     lr = get_lr()
     rf = get_rf()
     gb = get_gb()
 
-    # === ENSEMBLE ===
+    # IMPORTANT:
+    # clone ensures ensemble does NOT share state with baseline models
     ensemble = VotingClassifier(
         estimators=[
             ("lr", lr),
             ("rf", rf),
-            ("gb", gb),
+            ("gb", clone(gb)),
         ],
         voting="soft",
         n_jobs=-1,
     )
 
+    # =========================
+    # TRAIN ENSEMBLE
+    # =========================
     print("\n=== TRAINING ENSEMBLE ===")
     ensemble.fit(X_train, y_train)
 
@@ -61,15 +68,22 @@ def main():
     ens_metrics = evaluate(ensemble, X_test, y_test)
     print_metrics(ens_metrics)
 
-    # === BASELINE COMPARISON (GB) ===
+    # =========================
+    # BASELINE: GRADIENT BOOSTING (SEPARATE INSTANCE)
+    # =========================
     print("\n=== BASELINE (GRADIENT BOOSTING) ===")
 
-    gb.fit(X_train, y_train)
-    gb_metrics = evaluate(gb, X_test, y_test)
+    gb_base = get_gb()  # NEW instance (no reuse!)
+    gb_base.fit(X_train, y_train)
+
+    gb_metrics = evaluate(gb_base, X_test, y_test)
     print_metrics(gb_metrics)
 
-    # === FINAL SUMMARY ===
+    # =========================
+    # FINAL SUMMARY
+    # =========================
     print("\n=== FINAL COMPARISON ===")
+
     print(f"GB ROC-AUC:        {gb_metrics['roc_auc']:.4f}")
     print(f"ENSEMBLE ROC-AUC:  {ens_metrics['roc_auc']:.4f}")
 
