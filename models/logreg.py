@@ -1,19 +1,20 @@
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from evaluation import evaluate, print_metrics
 
 
 def get_model(use_class_weight=False):
-    """
-    Factory function for ensemble usage.
-    Returns an UNTRAINED model.
-    """
-    return LogisticRegression(
-        max_iter=1000,
-        solver="lbfgs",
-        class_weight="balanced" if use_class_weight else None,
-        random_state=42,
-    )
+    return Pipeline([
+        ("scaler", StandardScaler()),
+        ("clf", LogisticRegression(
+            max_iter=3000,
+            solver="lbfgs",
+            class_weight="balanced" if use_class_weight else None,
+            random_state=42,
+        ))
+    ])
 
 
 # -----------------------------
