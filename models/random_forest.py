@@ -1,4 +1,4 @@
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 
 from evaluation import evaluate, print_metrics
 
@@ -8,11 +8,11 @@ def get_model():
     Factory function for ensemble usage.
     Returns an UNTRAINED model.
     """
-    return LogisticRegression(
-        max_iter=1000,
-        solver="lbfgs",
+    return RandomForestClassifier(
+        n_estimators=200,
         class_weight="balanced",
         random_state=42,
+        n_jobs=-1,
     )
 
 
@@ -55,7 +55,7 @@ def main():
     model.fit(X_train, y_train)
 
     metrics = evaluate(model, X_test, y_test)
-    print("LR metrics:")
+    print("RF metrics:")
     print_metrics(metrics)
 
 
