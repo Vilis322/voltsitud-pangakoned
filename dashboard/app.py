@@ -1,17 +1,4 @@
-from pathlib import Path
-
-import joblib
-import pandas as pd
-import plotly.express as px
 import streamlit as st
-
-ROOT = Path(__file__).resolve().parent.parent
-
-MODEL_PATH = ROOT / "models" / "best_model.joblib"
-SCALER_PATH = ROOT / "models" / "scaler.joblib"
-FEATURE_COLUMNS_PATH = ROOT / "models" / "feature_columns.joblib"
-DATA_PATH = ROOT / "data" / "labeled_bank_calls.csv"
-
 
 st.set_page_config(
     page_title="Fraud Detection Dashboard",
