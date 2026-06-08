@@ -4,13 +4,15 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import (
     accuracy_score,
-    roc_auc_score,
+    classification_report,
+    confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
-    confusion_matrix,
-    classification_report,
+    roc_auc_score,
 )
+
+from evaluation import evaluate, print_metrics
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -44,30 +46,9 @@ def apply_temporary_imputation(X_train, X_test):
     return X_train, X_test
 
 
-def evaluate(model, X_test, y_test):
-    y_pred = model.predict(X_test)
-    y_proba = model.predict_proba(X_test)[:, 1]
-
-    metrics = {
-        "accuracy": accuracy_score(y_test, y_pred),
-        "roc_auc": roc_auc_score(y_test, y_proba),
-        "f1": f1_score(y_test, y_pred),
-        "precision": precision_score(y_test, y_pred),
-        "recall": recall_score(y_test, y_pred),
-    }
-
-    print("\n=== GRADIENT BOOSTING EVALUATION ===\n")
-
-    for k, v in metrics.items():
-        print(f"{k}: {v:.4f}")
-
-    print("\nConfusion Matrix:")
-    print(confusion_matrix(y_test, y_pred))
-
-    print("\nClassification Report:")
-    print(classification_report(y_test, y_pred))
-
-    return metrics
+def get_model():
+    """Return a configured GradientBoostingClassifier for ensemble use."""
+    return GradientBoostingClassifier(random_state=42)
 
 
 def main():
@@ -100,26 +81,25 @@ def main():
         print("Test NaN columns:")
         print(nan_test)
 
-    # imputation
+    # Imputation
     X_train, X_test = apply_temporary_imputation(X_train, X_test)
 
     # === MODEL ===
-    model = GradientBoostingClassifier(
-        random_state=42,
-    )
+    print("GB metrics:")
+    model = get_model()
 
     model.fit(X_train, y_train)
 
     metrics = evaluate(model, X_test, y_test)
-
+    print_metrics(metrics)
     # === AUDIT BLOCK ===
-    print("\n=== AUDIT SUMMARY ===")
-    print("Model: GradientBoostingClassifier")
-    print(f"ROC-AUC:   {metrics['roc_auc']:.4f}")
-    print(f"F1-score:  {metrics['f1']:.4f}")
-    print(f"Precision: {metrics['precision']:.4f}")
-    print(f"Recall:    {metrics['recall']:.4f}")
+    #print("\n=== AUDIT SUMMARY ===")
+    #print("Model: GradientBoostingClassifier")
+    #print(f"ROC-AUC:   {metrics['roc_auc']:.4f}")
+    #print(f"F1-score:  {metrics['f1']:.4f}")
+    #print(f"Precision: {metrics['precision']:.4f}")
+    #print(f"Recall:    {metrics['recall']:.4f}")
 
 
 if __name__ == "__main__":
-    main()
+    main()  
