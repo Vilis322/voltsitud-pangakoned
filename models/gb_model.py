@@ -4,13 +4,16 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import (
     accuracy_score,
-    roc_auc_score,
+    classification_report,
+    confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
-    confusion_matrix,
-    classification_report,
+    roc_auc_score,
 )
+
+# Removed 'evaluate' from here to prevent namespace overriding
+from evaluation import print_metrics
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -28,11 +31,10 @@ def load_data(path: Path):
 
 
 def apply_temporary_imputation(X_train, X_test):
-    """
-    Same philosophy as in LogReg module:
+    """Same philosophy as in LogReg module:
+
     simple median imputation for safety.
     """
-
     X_train = X_train.copy()
     X_test = X_test.copy()
 
@@ -44,7 +46,12 @@ def apply_temporary_imputation(X_train, X_test):
     return X_train, X_test
 
 
-def evaluate(model, X_test, y_test):
+def get_model():
+    """Return a configured GradientBoostingClassifier for ensemble use."""
+    return GradientBoostingClassifier(random_state=42)
+
+
+def evaluate_local(model, X_test, y_test):
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:, 1]
 
@@ -100,17 +107,17 @@ def main():
         print("Test NaN columns:")
         print(nan_test)
 
-    # imputation
+    # Imputation
     X_train, X_test = apply_temporary_imputation(X_train, X_test)
 
     # === MODEL ===
-    model = GradientBoostingClassifier(
-        random_state=42,
-    )
+    print("\nTraining GB Model...")
+    model = get_model()  # Using the helper function properly now
 
     model.fit(X_train, y_train)
 
-    metrics = evaluate(model, X_test, y_test)
+    # Call the explicitly renamed local evaluation function
+    metrics = evaluate_local(model, X_test, y_test)
 
     # === AUDIT BLOCK ===
     print("\n=== AUDIT SUMMARY ===")

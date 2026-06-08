@@ -5,13 +5,17 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     accuracy_score,
-    roc_auc_score,
+    classification_report,
+    confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
-    confusion_matrix,
-    classification_report,
+    roc_auc_score,
 )
+
+# Imported from ensembling branch for factory support
+from evaluation import evaluate as ext_evaluate
+from evaluation import print_metrics
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -44,23 +48,46 @@ def apply_temporary_imputation(
     return X_train, X_test
 
 
+def get_model():
+    """Factory function for ensemble usage.
+
+    Returns an UNTRAINED model.
+    """
+    return RandomForestClassifier(
+        n_estimators=200,
+        class_weight="balanced",
+        random_state=42,
+        n_jobs=-1,
+    )
+
+
 def evaluate(model, X_test, y_test):
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:, 1]
 
+    metrics = {
+        "accuracy": accuracy_score(y_test, y_pred),
+        "roc_auc": roc_auc_score(y_test, y_proba),
+        "f1": f1_score(y_test, y_pred),
+        "precision": precision_score(y_test, y_pred),
+        "recall": recall_score(y_test, y_pred),
+    }
+
     print("\n=== RANDOM FOREST EVALUATION ===\n")
 
-    print(f"Accuracy:  {accuracy_score(y_test, y_pred):.4f}")
-    print(f"ROC-AUC:   {roc_auc_score(y_test, y_proba):.4f}")
-    print(f"F1-score:  {f1_score(y_test, y_pred):.4f}")
-    print(f"Precision: {precision_score(y_test, y_pred):.4f}")
-    print(f"Recall:    {recall_score(y_test, y_pred):.4f}")
+    print(f"Accuracy:  {metrics['accuracy']:.4f}")
+    print(f"ROC-AUC:   {metrics['roc_auc']:.4f}")
+    print(f"F1-score:  {metrics['f1']:.4f}")
+    print(f"Precision: {metrics['precision']:.4f}")
+    print(f"Recall:    {metrics['recall']:.4f}")
 
     print("\nConfusion Matrix:")
     print(confusion_matrix(y_test, y_pred))
 
     print("\nClassification Report:")
     print(classification_report(y_test, y_pred))
+
+    return metrics
 
 
 def plot_feature_importances(model, feature_names):
@@ -108,16 +135,14 @@ def main():
 
     X_train, X_test = apply_temporary_imputation(X_train, X_test)
 
-    model = RandomForestClassifier(
-        n_estimators=200,
-        class_weight="balanced",
-        random_state=42,
-        n_jobs=-1,
-    )
+    model = get_model()
 
     model.fit(X_train, y_train)
-    evaluate(model, X_test, y_test)
+    metrics = evaluate(model, X_test, y_test)
     plot_feature_importances(model, X_train.columns)
+
+    print("\nRF metrics:")
+    print_metrics(metrics)
 
 
 if __name__ == "__main__":

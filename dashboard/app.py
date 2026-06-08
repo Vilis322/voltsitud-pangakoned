@@ -10,23 +10,23 @@ MODEL_PATH = ROOT / "models" / "best_model.joblib"
 SCALER_PATH = ROOT / "models" / "scaler.joblib"
 FEATURE_COLUMNS_PATH = ROOT / "models" / "feature_columns.joblib"
 
+st.set_page_config(
+    page_title="Fraud Detection & Risk Prediction", 
+    page_icon="📞", 
+    layout="wide"
+)
 
-st.set_page_config(page_title="Fraud Risk Prediction", page_icon="📞")
-
-st.title("Fraud Risk Prediction")
+st.title("Fraud Detection Dashboard")
 st.write("Enter call details to estimate fraud risk.")
-
 
 if not MODEL_PATH.exists() or not SCALER_PATH.exists() or not FEATURE_COLUMNS_PATH.exists():
     st.error("Model files are missing.")
     st.code("python models/save_best_model.py", language="bash")
     st.stop()
 
-
 model = joblib.load(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
 feature_columns = joblib.load(FEATURE_COLUMNS_PATH)
-
 
 with st.form("prediction_form"):
     st.subheader("Call details")
