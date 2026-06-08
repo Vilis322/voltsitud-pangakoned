@@ -3,11 +3,17 @@ from pathlib import Path
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import (
-    confusion_matrix,
+    accuracy_score,
     classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
 )
 
-from evaluation import evaluate, print_metrics
+# Removed 'evaluate' from here to prevent namespace overriding
+from evaluation import print_metrics
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -25,11 +31,10 @@ def load_data(path: Path):
 
 
 def apply_temporary_imputation(X_train, X_test):
-    """
-    Same philosophy as in LogReg module:
+    """Same philosophy as in LogReg module:
+
     simple median imputation for safety.
     """
-
     X_train = X_train.copy()
     X_test = X_test.copy()
 
@@ -44,6 +49,32 @@ def apply_temporary_imputation(X_train, X_test):
 def get_model():
     """Return a configured GradientBoostingClassifier for ensemble use."""
     return GradientBoostingClassifier(random_state=42)
+
+
+def evaluate_local(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]
+
+    metrics = {
+        "accuracy": accuracy_score(y_test, y_pred),
+        "roc_auc": roc_auc_score(y_test, y_proba),
+        "f1": f1_score(y_test, y_pred),
+        "precision": precision_score(y_test, y_pred),
+        "recall": recall_score(y_test, y_pred),
+    }
+
+    print("\n=== GRADIENT BOOSTING EVALUATION ===\n")
+
+    for k, v in metrics.items():
+        print(f"{k}: {v:.4f}")
+
+    print("\nConfusion Matrix:")
+    print(confusion_matrix(y_test, y_pred))
+
+    print("\nClassification Report:")
+    print(classification_report(y_test, y_pred))
+
+    return metrics
 
 
 def main():
@@ -76,26 +107,26 @@ def main():
         print("Test NaN columns:")
         print(nan_test)
 
-    # imputation
+    # Imputation
     X_train, X_test = apply_temporary_imputation(X_train, X_test)
 
     # === MODEL ===
-    print("GB metrics:")
-    model = get_model()
+    print("\nTraining GB Model...")
+    model = get_model()  # Using the helper function properly now
 
     model.fit(X_train, y_train)
 
-    metrics = evaluate(model, X_test, y_test)
-    print_metrics(metrics)
+    # Call the explicitly renamed local evaluation function
+    metrics = evaluate_local(model, X_test, y_test)
+
     # === AUDIT BLOCK ===
-    #print("\n=== AUDIT SUMMARY ===")
-    #print("Model: GradientBoostingClassifier")
-    #print(f"ROC-AUC:   {metrics['roc_auc']:.4f}")
-    #print(f"F1-score:  {metrics['f1']:.4f}")
-    #print(f"Precision: {metrics['precision']:.4f}")
-    #print(f"Recall:    {metrics['recall']:.4f}")
+    print("\n=== AUDIT SUMMARY ===")
+    print("Model: GradientBoostingClassifier")
+    print(f"ROC-AUC:   {metrics['roc_auc']:.4f}")
+    print(f"F1-score:  {metrics['f1']:.4f}")
+    print(f"Precision: {metrics['precision']:.4f}")
+    print(f"Recall:    {metrics['recall']:.4f}")
 
 
 if __name__ == "__main__":
     main()
-  
