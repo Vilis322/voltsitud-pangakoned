@@ -11,7 +11,7 @@ SCALER_PATH = ROOT / "models" / "scaler.joblib"
 FEATURE_COLUMNS_PATH = ROOT / "models" / "feature_columns.joblib"
 
 st.set_page_config(
-    page_title="Fraud Detection & Risk Prediction", 
+    page_title="Fraud Detection Dashboard", 
     page_icon="📞", 
     layout="wide"
 )
