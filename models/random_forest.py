@@ -1,7 +1,8 @@
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     accuracy_score,
     roc_auc_score,
@@ -16,6 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 TRAIN_PATH = ROOT / "data" / "train_features.csv"
 TEST_PATH = ROOT / "data" / "test_features.csv"
+FIGURE_PATH = ROOT / "docs" / "figures" / "random_forest_top15_feature_importances.png"
 
 
 def load_data(path: Path):
@@ -27,12 +29,10 @@ def load_data(path: Path):
     return X, y
 
 
-def apply_temporary_imputation(X_train, X_test):
-    """
-    Same philosophy as in LogReg module:
-    simple median imputation for safety.
-    """
-
+def apply_temporary_imputation(
+    X_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     X_train = X_train.copy()
     X_test = X_test.copy()
 
@@ -48,18 +48,13 @@ def evaluate(model, X_test, y_test):
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:, 1]
 
-    metrics = {
-        "accuracy": accuracy_score(y_test, y_pred),
-        "roc_auc": roc_auc_score(y_test, y_proba),
-        "f1": f1_score(y_test, y_pred),
-        "precision": precision_score(y_test, y_pred),
-        "recall": recall_score(y_test, y_pred),
-    }
+    print("\n=== RANDOM FOREST EVALUATION ===\n")
 
-    print("\n=== GRADIENT BOOSTING EVALUATION ===\n")
-
-    for k, v in metrics.items():
-        print(f"{k}: {v:.4f}")
+    print(f"Accuracy:  {accuracy_score(y_test, y_pred):.4f}")
+    print(f"ROC-AUC:   {roc_auc_score(y_test, y_proba):.4f}")
+    print(f"F1-score:  {f1_score(y_test, y_pred):.4f}")
+    print(f"Precision: {precision_score(y_test, y_pred):.4f}")
+    print(f"Recall:    {recall_score(y_test, y_pred):.4f}")
 
     print("\nConfusion Matrix:")
     print(confusion_matrix(y_test, y_pred))
@@ -67,19 +62,30 @@ def evaluate(model, X_test, y_test):
     print("\nClassification Report:")
     print(classification_report(y_test, y_pred))
 
-    return metrics
+
+def plot_feature_importances(model, feature_names):
+    importances = pd.Series(
+        model.feature_importances_,
+        index=feature_names,
+    ).sort_values(ascending=False).head(15)
+
+    FIGURE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    plt.figure(figsize=(10, 6))
+    importances.sort_values().plot(kind="barh")
+    plt.title("Top-15 Random Forest Feature Importances")
+    plt.xlabel("Importance")
+    plt.tight_layout()
+    plt.savefig(FIGURE_PATH, dpi=150)
+    plt.close()
+
+    print(f"\nFeature importance plot saved to: {FIGURE_PATH.relative_to(ROOT)}")
 
 
 def main():
-    print("\n=== LOADING DATA (FEATURES VERSION) ===")
-
     X_train, y_train = load_data(TRAIN_PATH)
     X_test, y_test = load_data(TEST_PATH)
 
-    print(f"Train shape: {X_train.shape}")
-    print(f"Test shape:  {X_test.shape}")
-
-    # NaN diagnostics
     print("\n=== NA DIAGNOSTICS ===")
 
     nan_train = X_train.isna().sum()
@@ -100,25 +106,18 @@ def main():
         print("Test NaN columns:")
         print(nan_test)
 
-    # imputation
     X_train, X_test = apply_temporary_imputation(X_train, X_test)
 
-    # === MODEL ===
-    model = GradientBoostingClassifier(
+    model = RandomForestClassifier(
+        n_estimators=200,
+        class_weight="balanced",
         random_state=42,
+        n_jobs=-1,
     )
 
     model.fit(X_train, y_train)
-
-    metrics = evaluate(model, X_test, y_test)
-
-    # === AUDIT BLOCK ===
-    print("\n=== AUDIT SUMMARY ===")
-    print("Model: GradientBoostingClassifier")
-    print(f"ROC-AUC:   {metrics['roc_auc']:.4f}")
-    print(f"F1-score:  {metrics['f1']:.4f}")
-    print(f"Precision: {metrics['precision']:.4f}")
-    print(f"Recall:    {metrics['recall']:.4f}")
+    evaluate(model, X_test, y_test)
+    plot_feature_importances(model, X_train.columns)
 
 
 if __name__ == "__main__":
