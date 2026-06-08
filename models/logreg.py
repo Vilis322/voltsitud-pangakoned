@@ -1,4 +1,6 @@
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from evaluation import evaluate, print_metrics
 

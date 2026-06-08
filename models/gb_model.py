@@ -3,8 +3,13 @@ from pathlib import Path
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import (
-    confusion_matrix,
+    accuracy_score,
     classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
 )
 
 from evaluation import evaluate, print_metrics
@@ -76,7 +81,7 @@ def main():
         print("Test NaN columns:")
         print(nan_test)
 
-    # imputation
+    # Imputation
     X_train, X_test = apply_temporary_imputation(X_train, X_test)
 
     # === MODEL ===
@@ -97,5 +102,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-  
+    main()  
