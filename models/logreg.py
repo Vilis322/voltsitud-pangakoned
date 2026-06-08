@@ -5,16 +5,17 @@ from sklearn.preprocessing import StandardScaler
 from evaluation import evaluate, print_metrics
 
 
-def get_model(use_class_weight=False):
-    return Pipeline([
-        ("scaler", StandardScaler()),
-        ("clf", LogisticRegression(
-            max_iter=3000,
-            solver="lbfgs",
-            class_weight="balanced" if use_class_weight else None,
-            random_state=42,
-        ))
-    ])
+def get_model():
+    """
+    Factory function for ensemble usage.
+    Returns an UNTRAINED model.
+    """
+    return LogisticRegression(
+        max_iter=1000,
+        solver="lbfgs",
+        class_weight="balanced",
+        random_state=42,
+    )
 
 
 # -----------------------------
@@ -52,22 +53,12 @@ def main():
 
     X_train, X_test = apply_imputation(X_train, X_test)
 
-    # baseline
-    model_base = get_model(use_class_weight=False)
-    model_base.fit(X_train, y_train)
-    metrics_base = evaluate(model_base, X_test, y_test)
+    model = get_model()
+    model.fit(X_train, y_train)
 
-    print("BASELINE (no imbalance handling):")
-    print_metrics(metrics_base)
-
-
-    # balanced
-    model_bal = get_model(use_class_weight=True)
-    model_bal.fit(X_train, y_train)
-    metrics_bal = evaluate(model_bal, X_test, y_test)
-
-    print("\nBALANCED (class_weight='balanced'):")
-    print_metrics(metrics_bal)
+    metrics = evaluate(model, X_test, y_test)
+    print("LR metrics:")
+    print_metrics(metrics)
 
 
 if __name__ == "__main__":

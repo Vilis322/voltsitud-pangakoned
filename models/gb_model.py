@@ -30,10 +30,11 @@ def load_data(path: Path):
 
 
 def apply_temporary_imputation(X_train, X_test):
-    """Same philosophy as in LogReg module:
-
+    """
+    Same philosophy as in LogReg module:
     simple median imputation for safety.
     """
+
     X_train = X_train.copy()
     X_test = X_test.copy()
 
@@ -91,7 +92,14 @@ def main():
 
     metrics = evaluate(model, X_test, y_test)
     print_metrics(metrics)
+    # === AUDIT BLOCK ===
+    #print("\n=== AUDIT SUMMARY ===")
+    #print("Model: GradientBoostingClassifier")
+    #print(f"ROC-AUC:   {metrics['roc_auc']:.4f}")
+    #print(f"F1-score:  {metrics['f1']:.4f}")
+    #print(f"Precision: {metrics['precision']:.4f}")
+    #print(f"Recall:    {metrics['recall']:.4f}")
 
 
 if __name__ == "__main__":
-    main()
+    main()  
