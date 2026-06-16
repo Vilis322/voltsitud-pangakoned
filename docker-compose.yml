@@ -1,0 +1,28 @@
+services:
+  jupyter:
+    build: .
+    container_name: vp-jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    environment:
+      PYTHONUNBUFFERED: "1"
+
+  streamlit:
+    build: .
+    container_name: vp-streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    environment:
+      PYTHONUNBUFFERED: "1"
+    command: >
+      streamlit run dashboard/Home.py
+      --server.address=0.0.0.0
+      --server.port=8501
+      --server.headless=true
+      --browser.gatherUsageStats=false
